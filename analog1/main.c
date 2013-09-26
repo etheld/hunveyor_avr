@@ -20,6 +20,7 @@
 #define SLAVE_ADDR 0x07
 
 void init_i2c() {
+	// resetting ports to default
 	DDRB = BDIR;
 	DDRC = CDIR;
 	DDRD = DDIR;
@@ -34,25 +35,29 @@ int main(void)
 {
 
 	init_i2c();
-	unsigned char messagebuf[8];
-	//I2C_init(0x4);
+	unsigned char messagebuf[8];  // message buffer to receive commands
+
 	sei(); // allow interrupts
-	TWI_Start_Transceiver();
+	TWI_Start_Transceiver(); // start up the communications
 	do {
-		if (!TWI_Transceiver_Busy() && TWI_statusReg.lastTransOK && TWI_statusReg.RxDataInBuf) {
-			TWI_Get_Data_From_Transceiver(messagebuf, 2);
-			if (messagebuf[0] == 0x17) {
-				messagebuf[0] = 0xAA;
-				TWI_Start_Transceiver_With_Data(messagebuf,1);
-			}
-			if (! TWI_Transceiver_Busy()) {
-				TWI_Start_Transceiver();
+		if (!TWI_Transceiver_Busy()) {
+			if (TWI_statusReg.lastTransOK && TWI_statusReg.RxDataInBuf) { // there is data in the receive buff and last transaction was okay
+
+				TWI_Get_Data_From_Transceiver(messagebuf, 2); // fetch the data to messagebuff
+				if (messagebuf[0] == 0x17) { // if the first byte was 0x17
+					messagebuf[0] = 0xAA; // reply with 0xAA test byte
+					TWI_Start_Transceiver_With_Data(messagebuf,1); // sending the reply
+				}
+				if (! TWI_Transceiver_Busy()) {
+					TWI_Start_Transceiver(); // restart the transceiver
+				}
 			}
 		}
-	} while(1);
-// Set Port D pins as all outputs
+	} while(1); // infinite loop
+
+	// Set Port D pins as all outputs
 //DDRD = 0xff;
 // Set all Port D pins as HIGH
 //PORTD = 0x00;
-return 1;
+	return 1;
 }
